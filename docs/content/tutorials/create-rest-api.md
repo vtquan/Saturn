@@ -31,9 +31,9 @@ let apiRouter =
     }
 ```
 
-This will be the base of our Books API endpoints at "http://localhost:8085/api/books/".
+This will be the base of our Books API endpoints at `"http://localhost:8085/api/books/"`.
 
-This router will automatically pass `HttpFunc and `HttpContext to our action functions as parameters. Now, let's create our action functions.
+This router will automatically pass `HttpFunc` and `HttpContext` to our action functions as parameters. Now, let's create our action functions.
 
 We don't need an id to return a list of all books so the path for our GET request is `"http://localhost:8085/api/books/"` thanks to `forward "/books" Books.Controller.apiRouter` inside our Router.fs file.
 
@@ -43,7 +43,7 @@ For POST, we need to parse the object passed in with the request. Generally, thi
 
 For PUT, we need both the id and the object so we will have both `putf` and `bindJson` to get the values to pass to `putAction`.
 
-The id is needed for DELETE so we use `deletef`.
+For DELETE, the id is needed so we use `deletef`.
 
 | Format String | Type |
 | ----------- | ---- |
