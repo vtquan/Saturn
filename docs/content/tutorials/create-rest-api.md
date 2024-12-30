@@ -6,7 +6,7 @@ menu_order: 4
 
 # Creating REST API
 
-Starting from the [how to start guide](how-to-start.html), we will create a Book API to get, insert, update, and delete Books. 
+Starting from the [how to start guide](how-to-start.html), we will create a Book API to create, read, update, and delete. 
 
 First we need set up the application to handle api routes. Uncomment `forward "/api" apiRouter` line in `appRouter` inside Router.fs. Then, uncomment the `api` pipeline and `apiRouter` in the same file. Finally, change `forward "/someApi" someScopeOrController` to  `forward "/books" Books.Controller.apiRouter` inside `apiRouter`. 
 
@@ -14,7 +14,7 @@ We also need to clean up the template. Remove the `error_handler (text "Api 404"
 
 ## Configure Endpoint Routing
 
-We will be using Endpoint Routing for the application. See [here](https://saturnframework.org/explanations/endpoint-routing.html) for more information. To do this. Add `open Saturn.Endpoint` to the Router.fs and BooksController.fs files. Then inside Program.fs, replace `use_router Router.appRouter` with `use_endpoint_router Router.appRouter`.
+We will be using [Endpoint Routing](https://saturnframework.org/explanations/endpoint-routing.html) for the application. To do this, add `open Saturn.Endpoint` to the Router.fs and BooksController.fs files. Then inside Program.fs, replace `use_router Router.appRouter` with `use_endpoint_router Router.appRouter`.
 
 ## API Router
 
@@ -31,13 +31,19 @@ let apiRouter =
     }
 ```
 
-With the setup done earlier, this will set the base of our Books API endpoints at `"http://localhost:8085/api/books/"`.
+This will be the base of our Books API endpoints at "http://localhost:8085/api/books/".
 
-We have not create the action functions yet. This router will automatically pass `HttpFunc` and `HttpContext` to our functions. All our action functions will have those as our parameter.
+This router will automatically pass `HttpFunc and `HttpContext to our action functions as parameters. Now, let's create our action functions.
 
-For GET, we need no id to get all book so the route will just the current location. Because of `forward "/books" Books.Controller.apiRouter` inside our Router.fs file. The path for our GET request is `"http://localhost:8085/api/books/"`
+We don't need an id to return a list of all books so the path for our GET request is `"http://localhost:8085/api/books/"` thanks to `forward "/books" Books.Controller.apiRouter` inside our Router.fs file.
 
-To get a specific book by id, we will need to get our id from the URL. For that, we will use `getf` and the format string `"/%s"` to read the string from the URL and pass it on to our function. You can also write this as `getf "/%s" getByIdAction`. Refer to the table below to modify the format string to your need (e.g. use `"/%i"` if your id is an int). So to get the book with the id of 2, create a GET request to `"http://localhost:8085/api/books/2"`
+To get a specific book by id, we will need to get our id from the URL. For instance, to get a book with an id of 2, we would make a GET request to `"http://localhost:8085/api/books/2"`. For that, we will use `getf` and the format string `"/%s"` to read the string from the URL and pass it on to our function. You can also write this as `getf "/%s" getByIdAction`. Refer to the table below to modify the format string to your need (e.g. use `"/%i"` if your id is an int).
+
+For POST, we need to parse the object passed in with the request. Generally, this is a JSON object so `bindJson` is used. To test, send a POST request to `"http://localhost:8085/api/books/"` with the object inside the body as JSON.
+
+For PUT, we need both the id and the object so we will have both `putf` and `bindJson` to get the values to pass to `putAction`.
+
+The id is needed for DELETE so we use `deletef`.
 
 | Format String | Type |
 | ----------- | ---- |
@@ -48,12 +54,6 @@ To get a specific book by id, we will need to get our id from the URL. For that,
 | `%d` | `int64` |
 | `%f` | `float`/`double` |
 | `%O` | `Guid` |
-
-For POST, we need to parse the object passed in with the request. Generally, this is a json object so `bindJson` is used. To test, send a POST request to `"http://localhost:8085/api/books/"` with the object inside the body as JSON.
-
-For PUT, we need both the id and the object so we will have both `putf` and `bindJson` to get the values to pass to `putAction`.
-
-The id is needed for DELETE so we use `deletef`.
 
 ## GET
 
@@ -71,11 +71,11 @@ let getAction (next: HttpFunc) (ctx: HttpContext) =
     }
 ```
 
-This GET request will return an `200 OK` with the list of books inside our database. If there is a problem getting data from the database, return a `500 Internal Error`. You can also use `return! (Successful.OK (List.ofSeq result) next ctx)` and `return! (ServerErrors.INTERNAL_ERROR ex.Message next ctx)` for OK and Internal Error.
+This GET request will return a `200 OK` with the list of books inside our database. If there is a problem getting data from the database, return a `500 Internal Error`. You can also use `return! (Successful.OK (List.ofSeq result) next ctx)` and `return! (ServerErrors.INTERNAL_ERROR ex.Message next ctx)` for OK and Internal Error.
 
 All our REST action methods will require a `HttpFunc` and `HttpContext` object passed in. We use the `HttpContext` object to retrieve our connection string and in returning the response code. The `HttpFunc` object is not used but is required for our router function.
 
-We also need a GET action for retrieving just one item by id. Create a new function with the id in the parameter. We will return a `404 Not Found` error if no book exists with that id.
+We also need a GET action to retrieve an item by id. Create a new function with the id in the parameter. We will return a `404 Not Found` error if no book exists with that id.
 
 ```fsharp
 let getByIdAction id (next: HttpFunc) (ctx: HttpContext) =
@@ -116,7 +116,7 @@ let postAction book (next: HttpFunc) (ctx: HttpContext) =
 
 ## PUT
 
-To update a book, we need the id and the book object with the updated data. First, we check that there is a book with the same id. Then we check that the data is valid. Then we update the book.
+To update a book, we need the id and a book object with updated data. First, we check that there is a book with the same id. Then we check that the data is valid. Then we update the book.
 
 ```fsharp
 let putAction id (book: Book) (next: HttpFunc) (ctx: HttpContext) =
@@ -147,7 +147,7 @@ let putAction id (book: Book) (next: HttpFunc) (ctx: HttpContext) =
 
 ## DELETE
 
-Deletion required the id of the object to be deleted. We need a check to see that the book with the id exist.
+Deletion requires the id of the object to be deleted. We need a check to see that the book with the id exist.
 
 ```fsharp
 let deleteApiAction id (next: HttpFunc) (ctx: HttpContext) =
@@ -281,7 +281,7 @@ let updateAction (ctx: HttpContext) (id: string) =
 
 ## DELETE
 
-For the delete. Send a DELETE request with the id in the URL address.
+Send a DELETE request with the id in the URL address.
 
 ```fsharp
 let deleteAction (ctx: HttpContext) (id: string) =
